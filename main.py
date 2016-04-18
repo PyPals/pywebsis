@@ -23,7 +23,7 @@ class Semester(object):
     #HTML IDs to be used in second url
     attendance_id = 'cc_ListAttendanceSummary_'
     attendance_code_id = attendance_id + 'productId_'
-    attendance_subject_name = attendance_id + 'productName_'
+    attendance_name_id = attendance_id + 'productName_'
     attendance_classes_id = attendance_id + 'attendanceTaken_'
     attendance_attended_id = attendance_id + 'classesAttended_'
     attendance_absent_id = attendance_id + 'classesAbsent_'
@@ -31,6 +31,16 @@ class Semester(object):
     attendance_last_updated = attendance_id + 'lastUpdatedStamp_'
     internal_code_id = 'cc_ListAssessmentScores_internalName_'
     internal_marks_id = 'cc_ListAssessmentScores_obtainedMarks_'
+
+    #HTML IDs to be used in get_personal_details
+    user_name_id = 'cc_ProfileTitle_name'
+    user_section_id = 'cc_ProfileTitle_sectionCode'
+    user_gender_id = 'ProfileSummary_gender_title'
+    user_birth_date_id = 'ProfileSummary_birthDate_title'
+    user_joining_year_id = 'ProfileSummary_customTimePeriodId_title'
+    user_nationality_id = 'ProfileSummary_nationalityId_title'
+    user_identification_table_id = 'listPartyIdentification_table'
+
 
     def __init__(self, session, semester):
         self.session = session
@@ -104,7 +114,7 @@ class Semester(object):
             i_str = str(i)
             if soup.find('span', {'id' : self.attendance_code_id + i_str})!=None:
                 attendance_details = {}
-                subject_name = soup.find('span', {'id' : Semester.attendance_subject_name + i_str})
+                subject_name = soup.find('span', {'id' : Semester.attendance_name_id + i_str})
                 classes_taken = soup.find('span', {'id' : Semester.attendance_classes_id + i_str})
                 classes_absent = soup.find('span', {'id' : Semester.attendance_absent_id + i_str})
                 classes_attended = soup.find('span', {'id' : Semester.attendance_attended_id + i_str})
@@ -124,6 +134,53 @@ class Semester(object):
         all_data['attendance'] =  attendance
         return all_data
 
+    def get_personal_details(self):
+        user_details = {}
+        current_url = 'http://websismit.manipal.edu/websis/control/viewStudentProfile'
+        r = session.get(current_url)
+        if r.status_code == 200:
+            html = r.text
+            html = html.replace('\n', '')
+            soup = BeautifulSoup(html, "lxml")
+        if soup.find('span', {'id' : Semester.user_name_id})!=None:
+            user_name = soup.find('span', {'id' : Semester.user_name_id})
+            user_details['name'] = user_name.text.strip()
+            user_section = soup.find('span', {'id' : Semester.user_section_id})
+            user_details['section'] = user_section.text.strip('Section ');
+            gender = soup.find('span', {'id' : Semester.user_gender_id})
+            user_gender = gender.findNext('td')
+            user_details['gender'] = user_gender.text.strip()
+            birth_date = soup.find('span', {'id' : Semester.user_birth_date_id})
+            user_birth_date = birth_date.findNext('td')
+            user_details['birth_date'] = user_birth_date.text.strip()
+            joining_year = soup.find('span', {'id' : Semester.user_joining_year_id})
+            user_joining_year = joining_year.findNext('td')
+            user_details['year_of_joining'] = user_joining_year.text.split('-')[0]
+            nationality = soup.find('span', {'id' : Semester.user_nationality_id})
+            user_nationality = nationality.findNext('td')
+            user_details['nationality'] =  user_nationality.text.strip()
+            mobile_number = soup.find('b', string = 'Mobile Phone')
+            user_mobile_number = mobile_number.findNext('div')
+            user_details['mobile_number'] = user_mobile_number.text.strip()
+            email_id = soup.find('b', string = 'Email Address')
+            user_email_id = email_id.findNext('div')
+            user_details['email_id'] = user_email_id.text.strip()
+            home_phone = soup.find('b', string = 'Home Phone')
+            user_home_phone = home_phone.findNext('div')
+            user_details['home_phone'] = user_home_phone.text.strip()
+            permanent_address = soup.find('b', string = 'Permanent Address')
+            user_permanent_address = permanent_address.findNext('div')
+            user_details['permanent_address'] = " ".join(user_permanent_address.text.split())
+            identification_table = soup.find('table', {'id' : Semester.user_identification_table_id})
+            user_identification_table = identification_table.find_all('td')
+            user_registeration_number = user_identification_table[1].text.strip()
+            user_admission_number = user_identification_table[3].text.strip()
+            user_roll_number = user_identification_table[5].text.strip()
+            user_details['registeration_number'] = user_registeration_number
+            user_details['admission_number'] = user_admission_number
+            user_details['roll_number'] = user_roll_number
+
+        return user_details
 
 if __name__ == '__main__':
     url = "http://websismit.manipal.edu/websis/control/createAnonSession"
@@ -134,9 +191,11 @@ if __name__ == '__main__':
     response = session.post(url, data=payload)
     sem_details = {}
     attendance_details = {}
+    user_details = {}
     if response.text.find('Profile of') == -1:
         print "Invalid details"
     else:
+        user_details = Semester(session, str(1)).get_personal_details()
         for i in range(1, 1+8):
             try:
                 sem_obj = Semester(session, str(i))
@@ -144,6 +203,11 @@ if __name__ == '__main__':
                 attendance_details['semester' + str(i)] =  sem_obj.get_attendance()
             except AttributeError:
                 break
+
+    user_details_json = json.dumps(user_details, indent=4, sort_keys=True, ensure_ascii=False)
+    f = open('user_details.json', 'w')
+    f.write((user_details_json).encode('ascii', 'ignore')) 
+    f.close()
 
     attendance_json = json.dumps(attendance_details, indent=4, sort_keys=True, ensure_ascii=False)
     f = open('attendance.json', 'w')
