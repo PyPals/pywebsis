@@ -5,6 +5,12 @@ import json
 class Semester(object):
     """docstring for Semester"""
 
+    url = 'http://websismit.manipal.edu/websis/control/StudentAcademicProfile'
+    url += '?productCategoryId=0905-TERM-'
+    url_details = 'http://websismit.manipal.edu/websis/control/'
+    url_details += 'ListCTPEnrollment?customTimePeriodId='
+
+    #HTML IDs to be used in first url
     form_id = 'ProgramAdmissionItemDetail'
     credits_id = 'ProgramAdmissionItemDetail_pcredits_title'
     gpa_id = 'ProgramAdmissionItemDetail_ptermResultScore_title'
@@ -13,18 +19,17 @@ class Semester(object):
     course_credit_id = 'cc_TermGradeBookSummary_credit_'
     course_grade_id = 'cc_TermGradeBookSummary_pfinalResult_'
     course_session_id = 'cc_TermGradeBookSummary_customTimePeriodId_'
-    attendance_id = 'cc_ListAttendanceSummary_'
-    subject_name = 'productName_'
-    classes_taken = 'attendanceTaken_'
-    classes_attended = 'classesAttended_'
-    classes_absent = 'classesAbsent_'
-    attendance_percentage = 'attendancePercentage_'
-    last_updated = 'lastUpdatedStamp_'
 
-    url = 'http://websismit.manipal.edu/websis/control/StudentAcademicProfile'
-    url += '?productCategoryId=0905-TERM-'
-    urlCustomTimePeriod = 'http://websismit.manipal.edu/websis/control/'
-    urlCustomTimePeriod += 'ListCTPEnrollment?customTimePeriodId='
+    #HTML IDs to be used in second url
+    attendance_id = 'cc_ListAttendanceSummary_'
+    attendance_code_id = attendance_id + 'productId_'
+    attendance_classes_id = attendance_id + 'attendanceTaken_'
+    attendance_attended_id = attendance_id + 'classesAttended_'
+    attendance_absent_id = attendance_id + 'classesAbsent_'
+    attendance_percent_id = attendance_id + 'attendancePercentage_'
+    attendance_last_updated = attendance_id + 'lastUpdatedStamp_'
+    internal_code_id = 'cc_ListAssessmentScores_internalName_'
+    internal_marks_id = 'cc_ListAssessmentScores_obtainedMarks_'
 
     def __init__(self, session, semester):
         self.session = session
@@ -74,6 +79,7 @@ class Semester(object):
                 break
         all_data['details'] = details
         all_data['subject_details'] = subjects
+        self.all_data = all_data
         return all_data
 
     def get_attendance(self):
@@ -85,36 +91,36 @@ class Semester(object):
         form = soup.find('form', {'id' : Semester.form_id})
         details_tag_list = form.find_all('input')
         currentSession = details_tag_list[1]['value'] 
-        current_url = Semester.urlCustomTimePeriod + currentSession
+        current_url = Semester.url_details + currentSession
         r = session.get(current_url)
         if r.status_code == 200:
             html = r.text
             html = html.replace('\n', '')
             soup = BeautifulSoup(html, "lxml")
+            self.soup_detailed = soup
         i = 1
         while True:
             i_str = str(i)
-            if soup.find('span', {'id' : self.attendance_id + self.attendance_percentage + i_str})!=None:
+            if soup.find('span', {'id' : self.attendance_code_id + i_str})!=None:
                 attendance_details = {}
-                subject = soup.find('span', {'id' : Semester.attendance_id + Semester.subject_name + i_str})
-                numberOfClassesTaken = soup.find('span', {'id' : Semester.attendance_id + Semester.classes_taken + i_str})
-                numberOfClassesAbsent = soup.find('span', {'id' : Semester.attendance_id + Semester.classes_absent + i_str})
-                numberOfClassesAttended = soup.find('span', {'id' : Semester.attendance_id + Semester.classes_attended + i_str})
-                attendancePercentage = soup.find('span', {'id' : Semester.attendance_id + Semester.attendance_percentage + i_str})
-                lastUpdatedStamp = soup.find('span', {'id' : Semester.attendance_id + Semester.last_updated + i_str})
+                classes_taken = soup.find('span', {'id' : Semester.attendance_classes_id + i_str})
+                classes_absent = soup.find('span', {'id' : Semester.attendance_absent_id + i_str})
+                classes_attended = soup.find('span', {'id' : Semester.attendance_attended_id + i_str})
+                attendance_percent = soup.find('span', {'id' : Semester.attendance_percent_id + i_str})
+                last_updated = soup.find('span', {'id' : Semester.attendance_last_updated + i_str})
 
-                attendance_details['subjectName'] = subject.text
-                attendance_details['numberOfClassesTaken'] = numberOfClassesTaken.text
-                attendance_details['numberOfClassesAbsent'] = numberOfClassesAbsent.text
-                attendance_details['numberOfClassesAttended'] = numberOfClassesAttended.text
-                attendance_details['attendancePercentage'] = attendancePercentage.text
-                attendance_details['lastUpdatedStamp'] = lastUpdatedStamp.text
+                attendance_details['classes_taken'] = classes_taken.text
+                attendance_details['classes_absent'] = classes_absent.text
+                attendance_details['classes_attended'] = classes_attended.text
+                attendance_details['attendance_percent'] = attendance_percent.text
+                attendance_details['last_updated'] = last_updated.text
                 attendance.append(attendance_details)
                 i = i + 1
             else:
                 break
         all_data['attendance'] =  attendance
         return all_data
+
 
 if __name__ == '__main__':
     url = "http://websismit.manipal.edu/websis/control/createAnonSession"
@@ -130,9 +136,9 @@ if __name__ == '__main__':
     else:
         for i in range(1, 1+8):
             try:
-                semObj = Semester(session, str(i))
-                sem_details['semester'+str(i)] = semObj.get_data()
-                attendance_details['semester' + str(i)] =  semObj.get_attendance()
+                sem_obj = Semester(session, str(i))
+                sem_details['semester'+str(i)] = sem_obj.get_data()
+                attendance_details['semester' + str(i)] =  sem_obj.get_attendance()
             except AttributeError:
                 break
 
