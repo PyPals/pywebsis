@@ -23,6 +23,7 @@ class Semester(object):
     #HTML IDs to be used in second url
     attendance_id = 'cc_ListAttendanceSummary_'
     attendance_code_id = attendance_id + 'productId_'
+    attendance_subject_name = attendance_id + 'productName_'
     attendance_classes_id = attendance_id + 'attendanceTaken_'
     attendance_attended_id = attendance_id + 'classesAttended_'
     attendance_absent_id = attendance_id + 'classesAbsent_'
@@ -103,12 +104,14 @@ class Semester(object):
             i_str = str(i)
             if soup.find('span', {'id' : self.attendance_code_id + i_str})!=None:
                 attendance_details = {}
+                subject_name = soup.find('span', {'id' : Semester.attendance_subject_name + i_str})
                 classes_taken = soup.find('span', {'id' : Semester.attendance_classes_id + i_str})
                 classes_absent = soup.find('span', {'id' : Semester.attendance_absent_id + i_str})
                 classes_attended = soup.find('span', {'id' : Semester.attendance_attended_id + i_str})
                 attendance_percent = soup.find('span', {'id' : Semester.attendance_percent_id + i_str})
                 last_updated = soup.find('span', {'id' : Semester.attendance_last_updated + i_str})
 
+                attendance_details['subject_name'] = subject_name.text
                 attendance_details['classes_taken'] = classes_taken.text
                 attendance_details['classes_absent'] = classes_absent.text
                 attendance_details['classes_attended'] = classes_attended.text
