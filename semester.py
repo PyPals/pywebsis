@@ -1,44 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import string_constants
 
 class Semester(object):
-    """docstring for Semester"""
-
-    url = 'http://websismit.manipal.edu/websis/control/StudentAcademicProfile'
-    url = url + '?productCategoryId=0905-TERM-'
-    url_details = 'http://websismit.manipal.edu/websis/control/'
-    url_details += 'ListCTPEnrollment?customTimePeriodId='
-
-    #HTML IDs to be used in first url
-    form_id = 'ProgramAdmissionItemDetail'
-    credits_id = 'ProgramAdmissionItemDetail_pcredits_title'
-    gpa_id = 'ProgramAdmissionItemDetail_ptermResultScore_title'
-    course_code_id = 'cc_TermGradeBookSummary_internalName_'
-    course_id = 'cc_TermGradeBookSummary_productName_'
-    course_credit_id = 'cc_TermGradeBookSummary_credit_'
-    course_grade_id = 'cc_TermGradeBookSummary_pfinalResult_'
-    course_session_id = 'cc_TermGradeBookSummary_customTimePeriodId_'
-
-    #HTML IDs to be used in second url
-    attendance_id = 'cc_ListAttendanceSummary_'
-    attendance_code_id = attendance_id + 'productId_'
-    attendance_name_id = attendance_id + 'productName_'
-    attendance_classes_id = attendance_id + 'attendanceTaken_'
-    attendance_attended_id = attendance_id + 'classesAttended_'
-    attendance_absent_id = attendance_id + 'classesAbsent_'
-    attendance_percent_id = attendance_id + 'attendancePercentage_'
-    attendance_last_updated = attendance_id + 'lastUpdatedStamp_'
-    internal_id = 'cc_ListAssessmentScores_'
-    internal_code_id = internal_id + 'internalName_'
-    internal_subject_name = internal_id + 'productName_'
-    internal_marks_id = internal_id + 'obtainedMarks_'
-
     def __init__(self, session, semester, url = ''):
         self.session = session
         self.semester = semester
         if url == '':
-            current_url = Semester.url + semester
+            current_url = string_constants.url + semester
         else:
             current_url = url
         r = session.get(current_url)
@@ -59,7 +29,7 @@ class Semester(object):
 
         #Getting semester details
         details = {}
-        form = soup.find('form', {'id' : Semester.form_id})
+        form = soup.find('form', {'id' : string_constants.form_id})
         details_tag_list = form.find_all('input')
         details['session'] = details_tag_list[1]['value']
         details['credits'] = details_tag_list[2]['value']
@@ -69,14 +39,14 @@ class Semester(object):
         i = 1
         while True:
             i_str = str(i)
-            if soup.find('span', {'id': Semester.course_id + i_str}) != None:
+            if soup.find('span', {'id': string_constants.course_id + i_str}) != None:
                 subject_details = {}
                 #Fetching tags with details
-                code = soup.find('span', {'id' : Semester.course_code_id + i_str})
-                course = soup.find('span', {'id' : Semester.course_id + i_str})
-                credits = soup.find('span', {'id' : Semester.course_credit_id + i_str })
-                grade = soup.find('span', {'id' : Semester.course_grade_id + i_str})
-                session = soup.find('span', {'id' : Semester.course_session_id + i_str})
+                code = soup.find('span', {'id' : string_constants.course_code_id + i_str})
+                course = soup.find('span', {'id' : string_constants.course_id + i_str})
+                credits = soup.find('span', {'id' : string_constants.course_credit_id + i_str })
+                grade = soup.find('span', {'id' : string_constants.course_grade_id + i_str})
+                session = soup.find('span', {'id' : string_constants.course_session_id + i_str})
                 #Saving them in a dict
                 subject_details['code'] = str(code.text)
                 subject_details['course'] = str(course.text)
@@ -100,10 +70,10 @@ class Semester(object):
         attendance = []
         #Getting attendance details
         if url == '':
-            form = soup.find('form', {'id' : Semester.form_id})
+            form = soup.find('form', {'id' : string_constants.form_id})
             details_tag_list = form.find_all('input')
             current_session = details_tag_list[1]['value'] 
-            current_url = Semester.url_details + current_session
+            current_url = string_constants.url_details + current_session
         else:
             current_url = url
         r = self.session.get(current_url)
@@ -115,14 +85,14 @@ class Semester(object):
         i = 1
         while True:
             i_str = str(i)
-            if soup.find('span', {'id' : self.attendance_code_id + i_str})!=None:
+            if soup.find('span', {'id' : string_constants.attendance_code_id + i_str})!=None:
                 attendance_details = {}
-                subject_name = soup.find('span', {'id' : Semester.attendance_name_id + i_str})
-                classes_taken = soup.find('span', {'id' : Semester.attendance_classes_id + i_str})
-                classes_absent = soup.find('span', {'id' : Semester.attendance_absent_id + i_str})
-                classes_attended = soup.find('span', {'id' : Semester.attendance_attended_id + i_str})
-                attendance_percent = soup.find('span', {'id' : Semester.attendance_percent_id + i_str})
-                last_updated = soup.find('span', {'id' : Semester.attendance_last_updated + i_str})
+                subject_name = soup.find('span', {'id' : string_constants.attendance_name_id + i_str})
+                classes_taken = soup.find('span', {'id' : string_constants.attendance_classes_id + i_str})
+                classes_absent = soup.find('span', {'id' : string_constants.attendance_absent_id + i_str})
+                classes_attended = soup.find('span', {'id' : string_constants.attendance_attended_id + i_str})
+                attendance_percent = soup.find('span', {'id' : string_constants.attendance_percent_id + i_str})
+                last_updated = soup.find('span', {'id' : string_constants.attendance_last_updated + i_str})
 
                 attendance_details['subject_name'] = subject_name.text
                 attendance_details['classes_taken'] = classes_taken.text
@@ -152,11 +122,11 @@ class Semester(object):
         i = 1
         while True:
             i_str = str(i)
-            if soup.find('span', {'id' : self.internal_code_id + i_str})!=None:
+            if soup.find('span', {'id' : string_constants.internal_code_id + i_str})!=None:
                 internal_details = {}
-                subject_code = soup.find('span', {'id' : Semester.internal_code_id + i_str})
-                subject_name = soup.find('span', {'id' : Semester.internal_subject_name + i_str})
-                marks = soup.find_all('span', {'id' : Semester.internal_marks_id + i_str})
+                subject_code = soup.find('span', {'id' : string_constants.internal_code_id + i_str})
+                subject_name = soup.find('span', {'id' : string_constants.internal_subject_name + i_str})
+                marks = soup.find_all('span', {'id' : string_constants.internal_marks_id + i_str})
 
                 internal_details['subject_name'] = str(subject_name.text)
                 for j in range(len(marks)):
